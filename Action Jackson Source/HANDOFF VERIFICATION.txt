@@ -1,0 +1,33 @@
+ACTION JACKSON - SOURCE HANDOFF VERIFICATION
+November 17, 2026
+
+Checks completed while preparing this handoff:
+
+PASS - All 41 files from the existing application bundle were copied.
+PASS - SHA-256 comparisons confirmed every original file was copied unchanged.
+PASS - All 10 source/build files are present (8 C# files, manifest, build script).
+PASS - The supplied build script successfully compiled the copied source in a
+       separate scratch folder using this computer's Windows .NET Framework
+       compiler. The resulting executable was 2,169,344 bytes.
+PASS - The executable, artwork, four native DLLs, complete speech-model folder,
+       licenses, original instructions, and local browser practice are included.
+
+The existing executable in this handoff was retained unchanged. The scratch
+build confirmed that the source compiles; it did not replace the saved binary.
+
+New handoff documents:
+  00 START HERE - SOURCE HANDOFF.txt
+  01 CODE GUIDE.txt
+  02 BUILD AND TEST.txt
+  03 KNOWN ISSUES.txt
+  HANDOFF VERIFICATION.txt
+  FILE INVENTORY.csv
+
+FILE INVENTORY.csv records the relative path, byte length, and SHA-256 hash
+of each handed-off file except the inventory itself. Source modifications
+after this handoff will intentionally make the corresponding hashes differ.
+
+No app behavior was changed for this handoff. No microphone session, screen
+clicking session, or game action was started during these handoff checks.
+Previous runtime test results are in VALIDATION.txt; current known issues
+are in 03 KNOWN ISSUES.txt. Compilation is not a compatibility guarantee.

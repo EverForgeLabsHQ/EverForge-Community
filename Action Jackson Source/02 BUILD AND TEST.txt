@@ -1,0 +1,150 @@
+ACTION JACKSON - EDITING, BUILDING, AND LOCAL TESTING
+
+1. WHAT YOU NEED
+
+This project uses Windows x64 and the Windows .NET Framework, Windows OCR,
+Windows UI Automation, and Windows Forms. It was built on this computer using
+the 64-bit .NET Framework compiler in:
+  %WINDIR%\Microsoft.NET\Framework64\v4.0.30319\csc.exe
+
+build.ps1 also locates installed Windows/.NET assemblies and System32\WinMetadata
+files. Windows OCR needs English recognition support. The supplied model and
+native DLLs are needed to run Vosk offline speech recognition.
+
+There is no NuGet restore, npm install, Python environment, .sln, or .csproj in
+this project. A modern .NET SDK is not the build entry point. The framework
+compiler supports an older C# language version; modern syntax may not compile.
+
+2. OPEN AND EDIT THE PROJECT
+
+Open the entire Action Jackson Source folder in your editor or coding program.
+Read 01 CODE GUIDE.txt and edit the relevant files in source. The app source is
+plain C#; the build script is PowerShell. Keep assets beside the source folder.
+
+Before building, close the Action Jackson copy whose executable will be
+replaced. Windows may lock a running .exe. Keep a backup of the source before
+making changes so you can compare or undo them.
+
+3. BUILD ON THIS COMPUTER
+
+Open Windows PowerShell. Set the working folder to the Desktop copy:
+
+  Set-Location -LiteralPath (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Action Jackson Source')
+
+Build the application:
+
+  & .\source\build.ps1
+
+Successful compilation ends with a line beginning 'Built:' and the executable
+path. The output replaces Action Jackson.exe in this folder and regenerates
+soldier.ico. If errors appear, resolve them before launching the output; a
+previous .exe may still exist after a failed build.
+
+To compile to a separate filename for development instead:
+
+  & .\source\build.ps1 -OutputName 'Action Jackson Dev.exe'
+
+This does not replace the existing Action Jackson.exe, but still regenerates
+soldier.ico. Keep the alternate .exe in this same folder with its dependencies.
+
+The source folder can be moved with its parent folder: paths in build.ps1 are
+relative to the script. If it is moved, change Set-Location to the new folder.
+If PowerShell reports a script policy/organizational restriction, that is a
+Windows policy issue rather than a C# compile error; follow your PC's policy.
+
+4. RUN THE CORRECT COPY
+
+Close the original normal Action Jackson panel before launching a modified copy.
+The existing desktop soldier shortcut still points to the original installation.
+Double-click this folder's Action Jackson.exe, or run:
+
+  Start-Process -FilePath '.\Action Jackson.exe'
+
+For the alternate build, substitute 'Action Jackson Dev.exe' in the command.
+Launching while another normal panel is open may simply restore that other
+panel. Changing the files here does not change the original shortcut target.
+
+5. EXISTING DIAGNOSTIC MODES
+
+Use the included local practice interfaces for behavior checks. The commands
+below assume PowerShell is still in the Action Jackson Source folder.
+
+VOICE ONLY
+  Start-Process -FilePath '.\Action Jackson.exe' -ArgumentList '--voice-test'
+
+Starts the panel with Test voice enabled and starts microphone listening.
+The voice-test path displays recognized words without screen scanning/clicks.
+Choose the intended microphone; close any other normal panel first.
+
+LOCAL PRACTICE WINDOW
+  Start-Process -FilePath '.\Action Jackson.exe' -ArgumentList '--practice'
+
+Opens the local practice window. Its counter shows which actions it receives.
+It can display different label sizes and rounded canvas-drawn buttons.
+The main panel's Practice link opens this same mode in a separate process.
+
+LOCAL BROWSER PRACTICE
+Open browser-practice.html in a browser. This supplied local page records its
+own button clicks. It requires no account and does not submit a game action.
+
+OCR/FILTER TESTS ONLY
+Pause/close normal listening first. This diagnostic does not need microphone
+input or physical mouse clicks. Always provide an absolute report filename:
+
+  $reportPath = Join-Path (Get-Location).Path 'ocr-test.txt'
+  $testArgs = '--self-test --ocr-only "' + $reportPath + '"'
+  $testProcess = Start-Process -FilePath '.\Action Jackson.exe' -ArgumentList $testArgs -Wait -PassThru
+  Get-Content -LiteralPath $reportPath
+  $testProcess.ExitCode
+
+The executable has no console window, so read the report rather than expecting
+terminal output. Exit code 0 means no failed checks; 1 means one or more failed.
+There are known retained OCR failures in the current version. The test also
+saves synthetic fixture-dark.png and fixture-light.png beside the report.
+
+FULL SELF-TEST
+Uses OCR/filter checks, synthesized speech, and brief microphone input:
+
+  $reportPath = Join-Path (Get-Location).Path 'self-test.txt'
+  $testArgs = '--self-test "' + $reportPath + '"'
+  $testProcess = Start-Process -FilePath '.\Action Jackson.exe' -ArgumentList $testArgs -Wait -PassThru
+  Get-Content -LiteralPath $reportPath
+  $testProcess.ExitCode
+
+This diagnostic uses the microphone and generates speech internally. It tests
+the Windows Speech fallback as well as Vosk, so a missing Windows recognizer
+can fail a test even if the main application's Vosk path is available.
+
+LOCAL PHYSICAL MOUSE INTEGRATION TEST
+  Start-Process -FilePath '.\Action Jackson.exe' -ArgumentList '--integration-test' -Wait
+  Get-Content -LiteralPath '.\integration-test.txt'
+
+This mode opens its own practice window, MOVES THE REAL POINTER, and clicks
+the local practice controls. Keep that test window visible and avoid using
+the mouse until it completes. Pause/close normal listening before running it.
+It writes a report then closes. A special test path targets its own practice
+form; passing this test alone does not verify all production detection logic.
+
+6. COMMON DEVELOPMENT CONFUSION
+
+Edited code but behavior did not change:
+  Compile, check for errors, close the existing app, and launch the executable
+  in THIS folder. The old desktop shortcut can still start the original copy.
+
+Build says it cannot write the .exe:
+  That executable may still be running. Close it, or use the alternate output
+  filename above. Do not assume a locked-file error is a source code problem.
+
+Speech DLL/model loading error:
+  Keep all four DLLs and the complete model folder beside the .exe. This is an
+  x64 build; mixing in unrelated 32-bit DLLs will not work.
+
+Microphone meter stays flat:
+  Confirm the intended Windows recording device is connected, selected, and
+  allowed in Windows microphone settings. Headphone audio playback alone does
+  not prove that the headset microphone is available.
+
+Heard line changes but no action occurs:
+  Recognition and target detection are separate. Check Test voice mode, match
+  counts, confidence/ambiguity messages, and the known detection limitations.
+  A successful build does not remove those limitations.

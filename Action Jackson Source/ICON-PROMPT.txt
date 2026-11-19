@@ -1,0 +1,16 @@
+Generated with the built-in image-generation tool.
+Final project image: soldier.png
+Windows icon: soldier.ico (also embedded in Action Jackson.exe)
+
+Prompt:
+Use case: stylized-concept. Asset type: Windows desktop application icon.
+Create one polished chunky 3D molded GREEN PLASTIC TOY SOLDIER BUST, helmet
+on, a cigar clenched at the corner of his mouth with a small curl of smoke,
+holding a fan of four ACES clearly visible against his chest. Head and upper
+torso only, strong readable silhouette, front three-quarter view, confident
+rugged toy face. Green army-man plastic throughout body and helmet, ivory
+cards marked A with suit symbols, brown cigar. Glossy toy highlights. Large
+centered subject fills a square image, all helmet, cards and cigar inside
+frame, clean transparent background. No words, lettering, badge, border,
+app tile, scenery, or watermark aside from the card ranks. Readable when
+reduced to desktop-icon size. Name of character for intent only: Action Jackson.

@@ -1,0 +1,260 @@
+ACTION JACKSON - PLAIN-ENGLISH CODE GUIDE
+
+1. THE BIG PICTURE
+
+This is a 64-bit Windows desktop application written in C#. Windows Forms
+draws the little control panel. Windows OCR reads visible screen text. Windows
+UI Automation also reads the names and rectangles of accessible buttons.
+Vosk recognizes a small set of spoken commands locally. Windows SendInput
+moves the mouse and sends an ordinary left-button click.
+
+The code does not connect to a website API, browser extension, or cloud speech
+service. It uses visible screen pixels, Windows accessibility information,
+microphone audio, and native Windows mouse input.
+
+Important terms:
+  OCR: Turning the writing in an image into text and its position.
+  UI Automation: Windows' accessibility interface for identifying controls.
+  Bounding rectangle: The screen position and size of a piece of text/button.
+  PCM: Uncompressed microphone samples sent to the speech recognizer.
+  Target: A candidate button, with its text, position, window, and image patch.
+  Scan: One collection of candidate targets found during a screen scan.
+
+2. EVERY SOURCE FILE
+
+source\App.cs - Starts the program and controls the small panel
+  Program.Main / Run
+    Set screen scaling support, choose a command-line mode, and start Windows
+    Forms. A named Windows mutex prevents two normal panels running together.
+    Startup failures may be written to startup-error.txt beside the .exe.
+  Program.LoadIcon / LoadSoldier
+    Read the icon and soldier image embedded into the executable at build time.
+  MainForm
+    Builds the panel, microphone selector, level meter, status labels, rounded
+    action buttons, Start/Pause control, Test voice checkbox, and Practice link.
+  StartListening
+    Creates the detector and speech engine, connects their events, starts audio
+    input, and starts the scan timer. Saves the microphone name to microphone.txt.
+  Pause
+    Stops listening and scanning, cancels pending work, and resets the display.
+    A session number prevents results from an old listening session being used.
+  Ui
+    Brings background events back to the Windows Forms UI thread before they
+    update controls. Background work cannot safely edit controls directly.
+  OnHeard
+    Normalizes recognized speech and removes an optional 'Jackson' prefix.
+    Handles stop commands, applies speech confidence checks, and forwards valid
+    actions to Execute. In Test voice mode it displays results without clicks.
+  ScanTick
+    Runs detection about every 850 milliseconds, without overlapping scans.
+    In Test voice mode it displays microphone diagnostics instead of scanning.
+  SetScan
+    Replaces the previous scan and updates counts/status for each action.
+    One match gives a check mark, none gives a dot, multiple gives a question
+    mark. A manual action button is enabled only when exactly one match exists.
+  Execute
+    Handles a recognized command or a manual panel action. It makes a NEW scan,
+    requires exactly one matching target, checks that the target is still there,
+    and asks Native.Click to click it. It prevents overlapping actions and has
+    a 1.5-second cooldown. A successful send does not prove the target app acted.
+  WndProc
+    Receives the registered Ctrl+Alt+Space shortcut and pauses the application.
+    Closing the panel stops listening/scanning and releases resources.
+
+source\Detector.cs - Finds and checks candidate buttons
+  Target
+    Holds an action name, text/button rectangles, owning window, and a small
+    screenshot patch. Dispose releases the stored image.
+  Scan
+    Holds the targets, scan time, and elapsed milliseconds. Dispose releases
+    its targets and images when a scan is replaced or discarded.
+  Detector
+    Owns the English Windows OCR engine and serializes detection work with a
+    semaphore, so two requests do not use it at the same time.
+  ActionWord
+    Accepts the individual words call, check, and fold after normalization.
+  ButtonLine
+    Filters complete labels. It rejects prose, automatic/combined actions, and
+    slash labels. For example, Check/Fold and Call Any are rejected by this
+    version; they are not missing just because of a microphone problem.
+  Capture / Resize / Read / ReadBitmap
+    Capture visible screen pixels, resize images, call Windows OCR, and map
+    recognized word rectangles back to physical screen coordinates.
+  ReadVariants / Invert / ThinBright
+    Try additional image appearances to make some text easier for OCR to read,
+    and merge duplicate detections. These are heuristics, not universal support.
+  ScanAsync
+    Captures each monitor, reads candidates at more than one image scale, adds
+    accessible buttons, and filters candidates by their visible owning window.
+    It rejects the current Action Jackson process. If accessibility cannot
+    identify a button, it uses visual shape and nearby action-label checks.
+  AddAccessibleButtons / AccessibleButton
+    Read Windows accessibility button names and bounds in relevant windows.
+    Checkboxes and radio buttons are rejected. Disabled, hidden, covered, or
+    unsuitable controls are rejected. This helps when OCR alone misses text.
+  FindButton
+    Estimates a button rectangle from the background/padding around OCR text.
+    Without a real accessible button, the detector also requires a nearby
+    different action on the same row in the same window. Standalone words can
+    therefore be missed even when they are readable.
+  Fresh
+    Rechecks the owning window, location, accessible control where available,
+    and a small image patch immediately before a click. Moved or changed
+    targets should be rejected rather than clicked using old coordinates.
+
+source\Voice.cs - Microphone capture and speech-engine selection
+  Microphone
+    A Windows audio device number and its friendly name.
+  WaveInput
+    Enumerates recording devices and uses Windows waveIn to capture 16 kHz,
+    mono, 16-bit PCM. Four native buffers feed a managed queue. Read supplies a
+    continuous stream; counters and peak amplitude power the diagnostic meter.
+    Dispose stops capture and frees the native audio buffers and device handle.
+  Voice
+    Provides the app with Heard, Level, Feedback, and Fault events. Chooses the
+    Vosk engine when its model folder exists; otherwise uses Windows Speech.
+  CreateEngine
+    Sets up the Windows Speech fallback with an English recognizer and the
+    limited command grammar. Windows Speech needs an installed compatible
+    recognizer. Its accuracy was worse in the original noisy-room test.
+
+source\OfflineVoice.cs - Local Vosk speech recognition
+  VoskNative
+    C# declarations for the functions exported by libvosk.dll. These connect
+    managed C# code to the native speech library through P/Invoke.
+  LocalRecognizer
+    Loads the supplied English model, creates a recognizer with the command
+    vocabulary, feeds it audio, and reads its JSON recognition results.
+    Extracts recognized text and word confidence; releases native resources.
+  OfflineVoice
+    Runs a background audio-reading loop. Complete recognition results become
+    Heard events; partial results are display feedback only. Unknown words do
+    not request an action. Disposal stops capture and shuts down the worker.
+    All model processing happens on this computer.
+
+source\Native.cs - Windows mouse, window, keyboard, and scaling helpers
+  Native
+    Declares the Windows API structures/functions used by the application.
+  SetDpi
+    Requests per-monitor screen scaling awareness so coordinates correspond to
+    physical pixels on supported Windows systems.
+  RootAt
+    Finds the top-level window that owns a particular point on the screen.
+  BusyKeys
+    Checks mouse buttons and modifier keys so an action does not interrupt an
+    ongoing drag or combine with a held Ctrl/Alt/Shift/Windows key.
+  Click
+    Saves the pointer position, converts coordinates for the full virtual
+    desktop, and sends mouse move/down/up events with SendInput. It attempts to
+    return the pointer only if it has remained near the click location. Windows
+    or the target application can block input; this does not invoke a DOM API.
+
+source\RoundedButton.cs - Panel/button appearance
+  Shapes.Rounded
+    Builds the rounded rectangle shape used for painting.
+  RoundedButton
+    Draws the button fill, centered label, hover/pressed colors, and disabled
+    appearance. Uses a rounded window region, so its hit area is rounded too.
+    This file controls appearance, not screen detection or speech recognition.
+
+source\Tests.cs - Existing diagnostics and local practice interfaces
+  PracticeForm
+    A local demonstration window that records received actions and click counts.
+    It has different label sizes and a canvas-button option.
+  PaintedButton
+    Draws a rounded button without exposing itself as an accessibility Button,
+    allowing the practice UI to exercise the visual/OCR detection path.
+  Tests.Run
+    Creates synthetic OCR fixtures, checks label filtering, and optionally tests
+    synthetic speech plus microphone capture. Writes a plain-text report.
+    Some retained OCR cases currently fail; see 03 KNOWN ISSUES.txt.
+  IntegrationForm
+    Uses a local practice form to test physical mouse clicks and records the
+    result. It includes a special path for its own practice window, so it is
+    not a complete test of production target selection or self-exclusion.
+
+source\AssemblyInfo.cs - Executable metadata
+  Stores assembly title/product/description and version 1.0.0.0. These appear
+  in file metadata; they do not implement app behavior.
+
+source\app.manifest - Windows application declarations
+  Requests normal user privileges (asInvoker), declares Windows compatibility,
+  and enables per-monitor DPI awareness. It does not request administrator mode.
+
+source\build.ps1 - Compiles the application
+  Finds the source folder relative to itself; generates soldier.ico from the
+  supplied PNG at multiple sizes; gathers Windows/.NET assembly references;
+  compiles every .cs file into an x64 Windows executable; embeds the icon/image.
+  Uses the built-in .NET Framework C# compiler and throws if compilation fails.
+  It does not download dependencies or rebuild the external Vosk native library.
+
+3. HOW THE PARTS CONNECT
+
+Startup:
+  Program -> MainForm -> paused control panel
+
+When Start Listening is pressed:
+  MainForm -> Voice -> WaveInput -> selected microphone
+                     -> OfflineVoice/LocalRecognizer -> Vosk model
+  MainForm timer -> Detector.ScanAsync -> screen OCR + accessibility -> Scan
+  MainForm.SetScan -> status indicators
+
+When speech is recognized:
+  Complete speech result -> Heard event -> MainForm.OnHeard
+  -> confidence/command checks -> MainForm.Execute
+  -> fresh Scan -> exactly one target -> Fresh + BusyKeys checks
+  -> Native.Click -> Windows mouse input
+
+When paused/closed:
+  Stop timer + cancel the current session + dispose speech/audio resources.
+  Delayed results from the prior session are discarded.
+
+The detector excludes Action Jackson's own process ID, not merely its title
+or the words on its panel. The Practice link launches a separate process so
+the practice controls can be detected. The current code does not simply click
+every visible occurrence of call/check/fold.
+
+4. OTHER FILES AND FOLDERS
+
+Action Jackson.exe
+  The existing compiled application. Editing .cs files alone does not change it;
+  run the build script to produce an executable containing source changes.
+soldier.png
+  Original raster artwork used to generate the icon and embedded panel image.
+soldier.ico
+  Multi-size Windows icon. Regenerated by build.ps1 from soldier.png.
+libvosk.dll
+  Third-party compiled Vosk speech recognition engine.
+libstdc++-6.dll / libgcc_s_seh-1.dll / libwinpthread-1.dll
+  Native runtime dependencies required by the supplied Windows Vosk library.
+  These are binaries, not Action Jackson application source.
+vosk-model-small-en-us-0.15\
+  Pretrained English model data, not editable C# code. Keep its internal layout:
+    am       Acoustic model data (relates audio to speech sounds).
+    conf     Audio/model decoding configuration.
+    graph    Recognition/decoding graph and related word/phone data.
+    ivector  Speaker adaptation data used by the model.
+    README   Information supplied with the model.
+microphone.txt
+  The saved Windows recording-device name. Device names can be truncated by
+  the Windows API. Choose a different device in the panel when moving PCs.
+browser-practice.html
+  Standalone local browser test page with buttons and a received-click counter.
+  It is a diagnostic fixture, not part of the main application's interface.
+licenses\
+  Included third-party license texts. Retain them when sharing the dependencies.
+THIRD-PARTY.txt
+  Upstream locations and licensing notes. The upstream projects' complete
+  source trees are not included; this folder includes Action Jackson's source.
+ICON-PROMPT.txt / START HERE.txt / VALIDATION.txt
+  Original icon-generation notes, user instructions, and validation record.
+
+Possible files created later at runtime:
+  startup-error.txt / last-error.txt: error details where those code paths run.
+  self-test.txt or a chosen report name: diagnostic results.
+  fixture-dark.png / fixture-light.png: synthetic images from self-tests.
+  integration-test.txt: local mouse integration-test report.
+
+Normal operation processes audio and captured screen images locally in memory.
+It does not normally save raw audio/screenshots. Self-tests explicitly create
+synthetic fixture images; settings, reports, and errors can be written to disk.

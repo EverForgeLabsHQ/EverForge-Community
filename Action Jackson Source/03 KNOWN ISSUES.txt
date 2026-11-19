@@ -1,0 +1,60 @@
+ACTION JACKSON - CURRENT LIMITS AND UNRESOLVED ISSUES
+Snapshot: November 17, 2026
+
+This handoff preserves the existing implementation. These notes prevent a
+future editor from mistaking intended behavior, incomplete support, or a
+successful build for a fully solved product.
+
+1. IT DOES NOT DETECT EVERY SCREEN OR EVERY WORD INSTANCE
+The original requested universal behavior has not been achieved. The detector
+uses OCR, accessibility, button-shape checks, and additional filtering. It does
+not click every occurrence of an action word anywhere on a screen. Visible,
+uncovered, suitable controls are required; canvas text can still be missed.
+
+2. COMBINED LABELS ARE REJECTED
+Check/Fold, Call Any, and other combined/automatic labels are explicitly rejected
+by ButtonLine in Detector.cs. This was a point of disagreement in the session.
+No support for these combined labels was added in this source handoff.
+
+3. SOME SMALL/LIGHT OCR FIXTURES FAIL
+The previous automated run recorded 29 passed checks and four failures:
+  - 9-pixel dark fixture
+  - 9-, 12-, and 18-pixel light fixtures
+Those failing cases remain in the tests. Larger/supported cases and some live
+12-pixel browser labels worked, but that is not a guarantee for other layouts.
+Accessible button names can help even when OCR misses a visual label.
+
+4. SPEECH IS BETTER THAN THE INITIAL VERSION BUT IS NOT PERFECT
+The user confirmed Call, Check, and Fold worked after switching to Vosk with
+the AirPods microphone. The user later reported continued difficulty with Fold.
+That intermittent reliability issue was not conclusively resolved. Server-room
+noise, microphone selection, Bluetooth behavior, and recognition confidence
+can affect results. Partial recognition text is not a finalized command.
+
+5. OWN-PANEL EXCLUSION EXISTS BUT IS NOT A UNIVERSAL GUARANTEE
+The detector already excludes windows belonging to the current Action Jackson
+process. It is not implemented as a ban on the words in the panel. A separate
+practice process is intentionally eligible. The integration test's special
+own-window path does not independently prove production exclusion behavior.
+
+6. MULTIPLE MATCHES CAUSE NO CLICK
+The command path requires exactly one target. Duplicate visible controls may
+produce an ambiguity result. A stale/moved target, a held modifier/mouse button,
+the action cooldown, or a low-confidence utterance can also prevent a click.
+
+7. A SENT CLICK IS NOT CONFIRMED APPLICATION SUCCESS
+The code calls Windows SendInput. It does not inspect the target application's
+result to confirm an action was accepted. Elevated or input-protected apps can
+block synthetic input. Multi-monitor, scaling, animation, and unusual control
+styles are not exhaustively tested.
+
+8. HANDOFF SCOPE
+This is the complete existing Action Jackson application source and its current
+runtime assets, with new explanatory documents. Third-party DLLs and model data
+are supplied as dependencies; their complete upstream source trees are not
+included. See THIRD-PARTY.txt and licenses for their provenance/license terms.
+
+Previously observed successes and failures are recorded in VALIDATION.txt.
+The source-handoff checks are recorded separately in HANDOFF VERIFICATION.txt.
+Neither document claims universal compatibility or that the remaining issues
+were fixed.

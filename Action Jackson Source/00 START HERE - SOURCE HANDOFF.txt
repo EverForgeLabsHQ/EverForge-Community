@@ -1,0 +1,54 @@
+ACTION JACKSON - SOURCE HANDOFF
+Prepared November 17, 2026
+
+This folder contains the existing Action Jackson source code, the compiled
+application, its icon, and the files needed for its offline speech engine.
+The application source and original supporting files were copied unchanged.
+This handoff adds documentation; it does not fix the outstanding problems.
+
+WHERE THE EDITABLE CODE IS
+Open the folder named source. Its .cs files are ordinary C# text files that
+another coding program or text editor can open and modify.
+
+You can give another coding program this entire Action Jackson Source folder.
+Ask it to read this file and 01 CODE GUIDE.txt first. Keep a backup before edits.
+There is no Visual Studio solution, .csproj, Node project, or Python project.
+source\build.ps1 is the build entry point.
+
+READ THESE FILES IN ORDER
+1. 01 CODE GUIDE.txt
+   Explains every source file, the main classes/functions, how speech becomes
+   an action, how screen detection works, and what the other folders contain.
+2. 02 BUILD AND TEST.txt
+   Explains how to edit, compile, launch the copied application, and use the
+   existing local practice and diagnostic modes.
+3. 03 KNOWN ISSUES.txt
+   Explains the current limits and unresolved problems, including combined
+   labels, small text, and speech recognition reliability.
+
+OTHER DOCUMENTS
+START HERE.txt          Original user instructions, retained as supplied.
+VALIDATION.txt          Previous validation results, including failed cases.
+HANDOFF VERIFICATION.txt  Checks performed for this source handoff.
+FILE INVENTORY.csv     Relative path, size, and SHA-256 fingerprint of the
+                       handed-off files (excluding the inventory itself).
+THIRD-PARTY.txt         Dependency sources and license information.
+ICON-PROMPT.txt         Original generated-icon description.
+
+WHICH APPLICATION COPY AM I USING?
+This is a separate editable copy. The existing desktop soldier shortcut still
+points to the original application in Documents\Codex, not this source folder.
+Changing this copy does not update that shortcut or the original application.
+
+To use a build from this folder, close the original Action Jackson window,
+then launch Action Jackson.exe INSIDE THIS FOLDER. Only one normal Action
+Jackson panel can run at a time; launching another copy can bring the already
+running one to the front instead.
+
+KEEP THE FOLDER TOGETHER
+The executable needs the DLL files and vosk-model-small-en-us-0.15 folder for
+offline speech. Building also needs soldier.png beside the source folder.
+Do not give another program only the .exe if you want it to edit the code.
+
+The explanations describe the current implementation. Successful compilation
+does not mean every screen, label, headset, or application is compatible.
